@@ -1,0 +1,413 @@
+﻿@page "/"
+@using System.Text.Json
+@inject HttpClient Http
+<PageTitle>SWCS</PageTitle>
+<link rel="stylesheet" type="text/css" href="css/app.css?version=0.1">
+
+
+
+
+
+<div id="MainBox">
+    <b>Course List</b> <select style="width:100px" @onchange="UpdateCourse">
+        @for(int i = 0; i<Courses.Count;i++)
+        {
+            <option value=@i>@Courses[i].CourseCode | @Courses[i].CourseName</option>
+        }
+    </select> <br>
+    <div id="SubBox">
+        <b>Course Info</b> <br>
+        @Courses[index].CourseName <br>
+        @Courses[index].CourseCode <br>
+        @Courses[index].CourseLength <br>
+    </div>
+    <div id="SubBox">
+        <b>Misc. Info</b> <br>
+        Repeatable For Credit: <input type="checkbox" onclick="return false;" @bind=Courses[index].isRepeatableForCredit> <br>
+        Prerequisite: <input type="checkbox" onclick="return false;" @bind=Courses[index].hasPrerequsite> <br>
+        Teacher Permission: <input type="checkbox" onclick="return false;" @bind=Courses[index].needsTeacherPermission> <br>
+        Elective Only: <input type="checkbox" onclick="return false;" @bind=Courses[index].isElectiveOnly> <br>
+        CADR: <input type="checkbox" onclick="return false;" @bind=Courses[index].isCADR> <br>
+        Special Program: <input type="checkbox" onclick="return false;" @bind=Courses[index].isSpecialPrograms> <br>
+        Dual Credit: <input type="checkbox" onclick="return false;" @bind=Courses[index].isDualCredit> <br>
+
+    </div>
+    <div id="SubBox">
+        <b>Credit Info</b> <br>
+        English: <input type="checkbox" onclick="return false;" @bind=Courses[index].english> <br>
+        Math: <input type="checkbox" onclick="return false;" @bind=Courses[index].mathematics> <br>
+        Science: <input type="checkbox" onclick="return false;" @bind=Courses[index].science> <br>
+        CTE: <input type="checkbox" onclick="return false;" @bind=Courses[index].careerTechEd> <br>
+        Social Studies: <input type="checkbox" onclick="return false;" @bind=Courses[index].socialStudies> <br>
+        Physical Ed: <input type="checkbox" onclick="return false;" @bind=Courses[index].physicalEducation> <br>
+        Health: <input type="checkbox" onclick="return false;" @bind=Courses[index].health> <br>
+        Fine Arts: <input type="checkbox" onclick="return false;" @bind=Courses[index].fineArts> <br>
+    </div>
+    <div id="SubBox">
+        <b>Grades Available</b> <br>
+        Grade 9: <input type="checkbox" onclick="return false;" @bind=Courses[index].isGrade9> <br>
+        Grade 10: <input type="checkbox" onclick="return false;" @bind=Courses[index].isGrade10> <br>
+        Grade 11: <input type="checkbox" onclick="return false;" @bind=Courses[index].isGrade11> <br>
+        Grade 12: <input type="checkbox" onclick="return false;" @bind=Courses[index].isGrade12> <br>
+    </div>
+    <button class="btn btn-primary" @onclick="DecrementCount">-</button> @displayindex / @Courses.Count <button class="btn btn-primary" @onclick="IncrementCount">+</button> <br>
+    
+
+</div>
+
+
+<div id="MainBox" style="overflow-y:auto">
+    <b>Desired Courses</b> <br>
+    
+    <div id="SubSubBox" style="overflow-y:auto">
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>CourseID</th>
+                <th>Length</th>
+            </tr>
+        </thead>
+        <tbody>
+                @foreach (var user in DesiredCourses)
+                {
+                    <tr>
+                        <td style="color:@user.color">@user.CourseName</td>
+                        <td>@user.CourseCode</td>
+                        <td>@user.CourseLength</td>
+                    </tr>
+                }
+        </tbody>
+        </table>
+    </div>
+    
+    <div id="SubBox">
+        English: @denglish <br>
+        Math: @dmath <br>
+        Science: @dscience <br>
+        CTE: @dCTE <br>
+        Social Studies: @dsocstudies <br>
+        PE: @dphysed <br>
+        Health: @dhealth <br>
+        Fine Arts: @dfinearts <br>
+        General: @dgen <br>
+    </div>
+    <button class="btn btn-primary" @onclick="CheckDesiredClasses">Check Classes</button>
+    <button class= "btn btn-primary" @onclick="AddClassDesired">Add Current Class</button>
+</div>
+<div id="MainBox">
+    <b>Courses Completed</b> <br>
+    <div id="SubSubBox" style="overflow-y:auto">
+        <table class="table table-striped table-bordered">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>CourseID</th>
+                <th>Length</th>
+            </tr>
+        </thead>
+        <tbody>
+                @foreach (var course in CompletedCourses)
+                {
+                        <tr>
+                            <td style="color:@course.color">@course.CourseName</td>
+                            <td>@course.CourseCode</td>
+                            <td>@course.CourseLength</td>
+                        </tr>
+                }
+        </tbody>
+        </table>
+    </div>
+    <button class= "btn btn-primary" @onclick="CalculateCreds">Calculate Credits</button>
+    <button class= "btn btn-primary" @onclick="AddClass">Add Current Class</button>
+</div>
+
+
+@code {
+
+    string Test = string.Empty;
+    int index = 0;
+    int displayindex = 1;
+    string[] jsonstrs;
+
+    List<FormattedCourse> Courses = new List<FormattedCourse>() {new FormattedCourse()};
+    List<FormattedCourse> DesiredCourses = new List<FormattedCourse>();
+    List<FormattedCourse> CompletedCourses = new List<FormattedCourse>();
+    Requirements req = new Requirements();
+
+    double english = 3;
+    double math = 0;
+    double science = 0;
+    double CTE = 0;
+    double socstudies = 0;
+    double physed = 0;
+    double health = 0;
+    double finearts = 0;
+    double gen = 3;
+
+    double denglish = 0;
+    double dmath = 0;
+    double dscience = 0;
+    double dCTE = 0;
+    double dsocstudies = 0;
+    double dphysed = 0;
+    double dhealth = 0;
+    double dfinearts = 0;
+    double dgen = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var test = await Http.GetStringAsync("sample-data/Courses.json");
+        jsonstrs = test.Split("\n");
+
+        Courses = CourseHandler.FormatCourses(jsonstrs);
+    }
+
+    private void IncrementCount()
+    {
+        if (index < Courses.Count - 1)
+        {
+            index++;
+
+        }
+        else 
+        {
+            index = 0;
+        }
+        displayindex = index + 1;
+    }
+
+    private void DecrementCount() 
+    {
+        if (index > 0)
+        {
+            index--;
+        }
+        else
+        {
+            index = Courses.Count - 1;
+        }
+        displayindex = index + 1;
+    }
+
+
+    private void CheckDesiredClasses() 
+    {
+
+        double cEnglish = english;
+        double cMath = math;
+        double cScience = science;
+        double cCTE = CTE;
+        double cSocstudies = socstudies;
+        double cPhysed = physed;       
+        double cHealth = health;
+        double cFinearts = finearts;
+        double cGen = gen;
+
+
+
+        double[] Creds = {cEnglish, cMath, cScience, cCTE, cSocstudies, cPhysed, cHealth, cFinearts};
+        Requirements r = new Requirements();
+        double[] reqs = { r.EngReq, r.MathReq, r.SciReq, r.OccReq, r.SocReq, r.PEReq, r.HealthReq, r.ArtsReq };
+
+        foreach (FormattedCourse fc in DesiredCourses) 
+        {
+            bool[] cChecks = { false, false, false, false, false, false, false, false };
+            if (fc.english) { Creds[0] += 0.5; cChecks[0] = true; }
+            if (fc.mathematics) { Creds[1] += 0.5; cChecks[1] = true; }
+            if (fc.science) { Creds[2] += 0.5; cChecks[2] = true; }
+            if (fc.careerTechEd) { Creds[3] += 0.5; cChecks[3] = true; }
+            if (fc.socialStudies) { Creds[4] += 0.5; cChecks[4] = true; }
+            if (fc.physicalEducation) { Creds[5] += 0.5; cChecks[5] = true; }
+            if (fc.health) { Creds[6] += 0.5; cChecks[6] = true; }
+            if (fc.fineArts) { Creds[7] += 0.5; cChecks[7] = true; }
+
+
+
+            for (int i = 0; i < cChecks.Length; i++)
+            {
+                if (cChecks[i])
+                {
+                    if (Creds[i] <= reqs[i]) { fc.color = "#00ff00"; }
+
+                    if (Creds[i] > reqs[i] && cGen < r.GenReq) { cGen += 0.5; Creds[i] -= 0.5; fc.color = "#ff6200"; }
+
+                    if (cGen >= r.GenReq && Creds[i] > reqs[i]) { fc.color = "#ff0000"; cGen += 0.5; Creds[i] -= 0.5; }
+
+                }
+
+            }
+            if (fc.color != "#00ff00")
+            {
+                for (int i = 0; i < cChecks.Length; i++)
+                {
+                    if (cChecks[i] && fc.color != "#00ff00")
+                    {
+                        if (Creds[i] < reqs[i]) { fc.color = "#00ff00"; }
+                        if (Creds[i] > reqs[i] && cGen < r.GenReq) { cGen += 0.5; Creds[i] -= 0.5; fc.color = "#ff6200"; }
+                        if (cGen > r.GenReq && Creds[i] > reqs[i]) { fc.color = "#ff0000"; cGen += 0.5; Creds[i] -= 0.5; }
+
+                    }
+
+                }
+            }
+
+        }
+
+        denglish = Creds[0];
+        dmath = Creds[1];
+        dscience = Creds[2];
+        dCTE = Creds[3];
+        dsocstudies = Creds[4];
+        dphysed = Creds[5];
+        dhealth = Creds[6];
+        dfinearts = Creds[7];
+        dgen = cGen;
+
+    }
+
+    private void AddClass()
+    {
+        FormattedCourse AddedCourse = new FormattedCourse() {
+                CourseName = Courses[index].CourseName,
+                CourseCode = Courses[index].CourseCode,
+                CourseLength = Courses[index].CourseLength,
+                english = Courses[index].english,
+                mathematics = Courses[index].mathematics,
+                science = Courses[index].science,
+                careerTechEd = Courses[index].careerTechEd,
+                socialStudies = Courses[index].socialStudies,
+                physicalEducation = Courses[index].physicalEducation,
+                health = Courses[index].health,
+                fineArts = Courses[index].fineArts
+
+        };
+        CompletedCourses.Add(AddedCourse);
+    }
+    private void AddClassDesired()
+    {
+        FormattedCourse AddedCourse = new FormattedCourse()
+            {
+                CourseName = Courses[index].CourseName,
+                CourseCode = Courses[index].CourseCode,
+                CourseLength = Courses[index].CourseLength,
+                english = Courses[index].english,
+                mathematics = Courses[index].mathematics,
+                science = Courses[index].science,
+                careerTechEd = Courses[index].careerTechEd,
+                socialStudies = Courses[index].socialStudies,
+                physicalEducation = Courses[index].physicalEducation,
+                health = Courses[index].health,
+                fineArts = Courses[index].fineArts
+
+            };
+        DesiredCourses.Add(AddedCourse);
+    }
+
+    private void CalculateCreds() 
+    {
+        english = 0;
+        math = 0;
+        science = 0;
+        CTE = 0;
+        socstudies = 0;
+        physed = 0;
+        health = 0;
+        finearts = 0;
+        gen = 0;
+
+        foreach (FormattedCourse fc in CompletedCourses) 
+        {
+            if (fc.english) 
+            {
+                english += 0.5;
+                if (english > req.EngReq)
+                {
+                    english -= 0.5;
+                    gen += 0.5;
+                }
+            }
+            if (fc.science) 
+            {
+                science += 0.5;
+                if (science > req.SciReq)
+                {
+                    science -= 0.5;
+                    gen += 0.5;
+                }
+            }
+            if (fc.careerTechEd) 
+            {
+                CTE += 0.5;
+                if (CTE > req.OccReq)
+                {
+                    CTE -= 0.5;
+                    gen += 0.5;
+                }
+            }
+            if (fc.socialStudies) 
+            {
+                socstudies += 0.5;
+                if (socstudies > req.SocReq)
+                {
+                    socstudies -= 0.5;
+                    gen += 0.5;
+                }
+            }
+
+            if (fc.mathematics) 
+            {
+                math += 0.5;
+                if (math > req.MathReq)
+                {
+                    math -= 0.5;
+                    gen += 0.5;
+                }
+            }
+
+            if (fc.physicalEducation) 
+            {
+                physed += 0.5;
+                if (physed > req.PEReq)
+                {
+                    physed -= 0.5;
+                    gen += 0.5;
+                }
+            }
+            if (fc.health) 
+            {
+                health += 0.5;
+                if (health > req.HealthReq)
+                {
+                    health -= 0.5;
+                    gen += 0.5;
+                }
+            }
+            if (fc.fineArts) 
+            {
+                finearts += 0.5;
+                if (finearts > req.ArtsReq)
+                {
+                    finearts -= 0.5;
+                    gen += 0.5;
+                }
+            }
+            denglish = english;
+            dmath = math;
+            dsocstudies = socstudies;
+            dCTE = CTE;
+            dscience = science;
+            dphysed = physed;
+            dhealth = health;
+            dfinearts = finearts;
+            dgen = gen;
+
+        }
+    }
+
+    private void UpdateCourse(ChangeEventArgs e) 
+    {
+        index = Convert.ToInt32(e.Value);
+        displayindex = index + 1;
+    }
+}
