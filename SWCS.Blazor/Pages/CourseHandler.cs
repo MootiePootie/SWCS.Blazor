@@ -16,7 +16,7 @@ namespace SWCS.Blazor.Pages
                 jc = JsonSerializer.Deserialize<FromJsonCourse>(str);
                 cs.Add(jc);
             }
-
+            int i = 0;
             foreach (FromJsonCourse jcs in cs) 
             {
                 FormattedCourse fc = new FormattedCourse();
@@ -25,7 +25,7 @@ namespace SWCS.Blazor.Pages
                 fc.CourseCode = jcs.courseCodes;
                 fc.CourseLength = jcs.length;
 
-
+                fc.ID = i;
 
                 if (jcs.grade9 == gcheck) 
                 {
@@ -110,7 +110,7 @@ namespace SWCS.Blazor.Pages
 
 
                 fcs.Add(fc);
-
+                i++;
 
 
 

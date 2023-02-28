@@ -114,6 +114,7 @@ namespace SWCS.Blazor.Pages
         public bool isSpecialPrograms { get; set; }
         public bool health { get; set; }
         public string color { get; set; }
+        public int ID { get; set; }
     }
 
 

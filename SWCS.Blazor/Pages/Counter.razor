@@ -130,12 +130,14 @@
     int displayindex = 1;
     string[] jsonstrs;
 
+
     List<FormattedCourse> Courses = new List<FormattedCourse>() {new FormattedCourse()};
     List<FormattedCourse> DesiredCourses = new List<FormattedCourse>();
     List<FormattedCourse> CompletedCourses = new List<FormattedCourse>();
+    List<FormattedCourse> FilteredCourses = new List<FormattedCourse>();
     Requirements req = new Requirements();
 
-    double english = 3;
+    double english = 0;
     double math = 0;
     double science = 0;
     double CTE = 0;
@@ -143,7 +145,7 @@
     double physed = 0;
     double health = 0;
     double finearts = 0;
-    double gen = 3;
+    double gen = 0;
 
     double denglish = 0;
     double dmath = 0;
